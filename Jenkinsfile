@@ -22,7 +22,7 @@ pipeline {
                 -e SONAR_TOKEN=$SONAR_AUTH_TOKEN \
                 -v $(pwd):/usr/src \
                 sonarsource/sonar-scanner-cli \
-                -Dsonar.projectKey=mon-api \
+                -Dsonar.projectKey=mon-api-vuln \
                 -Dsonar.sources=/usr/src \
                 -Dsonar.inclusions=**/*.py \
                 -Dsonar.language=py \
@@ -35,14 +35,14 @@ pipeline {
         stage('Builder Docker') {
             steps {
                 echo 'Construction de l image Docker...'
-                sh 'docker build -t umissa/mon-api .'
+                sh 'docker build -t umissa/mon-api-vuln .'
             }
         }
         
         stage('Scanner avec Trivy') {
             steps {
                 echo 'Scan de sécurité avec Trivy...'
-                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 0 --severity HIGH,CRITICAL umissa/mon-api'
+                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 0 --severity HIGH,CRITICAL umissa/mon-api-vuln'
             }
         }
         
@@ -55,7 +55,7 @@ pipeline {
         stage('Pousser sur Docker Hub') {
             steps {
                 echo 'Push sur Docker Hub...'
-                sh 'docker push umissa/mon-api'
+                sh 'docker push umissa/mon-api-vuln'
             }
         }
         
