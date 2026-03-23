@@ -14,20 +14,19 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            steps {
-                script {
-                    docker.image('sonarsource/sonar-scanner-cli').inside('-v $WORKSPACE:/usr/src') {
-                        sh '''
-                        sonar-scanner \
-                        -Dsonar.projectKey=mon-api-vuln \
-                        -Dsonar.sources=sqli \
-                        -Dsonar.host.url=http://sonarqube:9000 \
-                        -Dsonar.login=$SONAR_TOKEN
-                        '''
-                    }
-                }
-            }
-        }
+    steps {
+        echo 'Scan SonarQube...'
+        sh '''
+        docker run --rm \
+        -e SONAR_HOST_URL=http://sonarqube:9000 \
+        -e SONAR_LOGIN=$SONAR_TOKEN \
+        -v $WORKSPACE:/usr/src \
+        sonarsource/sonar-scanner-cli \
+        -Dsonar.projectKey=mon-api-vuln \
+        -Dsonar.sources=sqli
+        '''
+    }
+}
 
         stage('Builder Docker') {
             steps {
