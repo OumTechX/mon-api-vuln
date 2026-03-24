@@ -16,25 +16,9 @@ spec:
     spec:
       containers:
       - name: webapp
-       image: umissa/mon-api-vuln
+        image: umissa/mon-api-vuln
         ports:
         - containerPort: 8080
-        env:
-        - name: MONGO_URL
-          valueFrom:
-            configMapKeyRef:
-              name: mongo-config
-              key: mongo-url
-        - name: MONGO_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: mongo-secret
-              key: mongo-user
-        - name: MONGO_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mongo-secret
-              key: mongo-password
 ---
 apiVersion: v1
 kind: Service
@@ -45,6 +29,6 @@ spec:
     app: webapp
   type: NodePort
   ports:
-  - port: 3000
-    targetPort: 5000
-    nodePort: 30100
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30200
