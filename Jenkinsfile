@@ -14,24 +14,24 @@ pipeline {
         }
         
         stage('SonarQube - Analyse') {
-            steps {
-                withSonarQubeEnv('sonarqube') {
-                    sh '''
-                        docker run --rm \
-                        --network host \
-                        -e SONAR_HOST_URL=http://localhost:9000 \
-                        -e SONAR_TOKEN=$SONAR_AUTH_TOKEN \
-                        -v $(pwd):/usr/src \
-                        sonarsource/sonar-scanner-cli \
-                        -Dsonar.projectKey=mon-api-vuln \
-                        -Dsonar.sources=/usr/src/sqli,/usr/src/config \
-                        -Dsonar.inclusions=**/*.py \
-                        -Dsonar.language=py \
-                        -Dsonar.python.version=3
-                    '''
-                }
-            }
+    steps {
+        withSonarQubeEnv('sonarqube') {
+            sh '''
+                docker run --rm \
+                --network host \
+                -e SONAR_HOST_URL=http://localhost:9000 \
+                -e SONAR_TOKEN=$SONAR_AUTH_TOKEN \
+                -v $(pwd):/usr/src \
+                sonarsource/sonar-scanner-cli \
+                -Dsonar.projectKey=mon-api-vuln \
+                -Dsonar.sources=/usr/src \
+                -Dsonar.inclusions=sqli/**/*.py,config/**/*.py \
+                -Dsonar.language=py \
+                -Dsonar.python.version=3
+            '''
         }
+    }
+}
         
         stage('Builder Docker') {
             steps {
