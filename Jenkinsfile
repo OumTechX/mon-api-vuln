@@ -12,22 +12,27 @@ pipeline {
                 echo 'Récupération du code depuis GitHub...'
             }
         }
-
-        stage('SonarQube Analysis') {
+        
+       stage('SonarQube - Analyse') {
     steps {
-        echo 'Scan SonarQube...'
-        sh '''
-        docker run --rm \
-        -e SONAR_HOST_URL=http://sonarqube:9000 \
-        -e SONAR_LOGIN=$SONAR_TOKEN \
-        -v $WORKSPACE:/usr/src \
-        sonarsource/sonar-scanner-cli \
-        -Dsonar.projectKey=mon-api-vuln \
-        -Dsonar.sources=sqli
-        '''
+        withSonarQubeEnv('sonarqube') {
+            sh '''
+                docker run --rm \
+                --network host \
+                -e SONAR_HOST_URL=http://localhost:9000 \
+                -e SONAR_TOKEN=$SONAR_AUTH_TOKEN \
+                -v $(pwd):/usr/src \
+                sonarsource/sonar-scanner-cli \
+                -Dsonar.projectKey=mon-api-vuln \
+                -Dsonar.sources=/usr/src/sqli \
+                -Dsonar.inclusions=**/*.py \
+                -Dsonar.language=py \
+                -Dsonar.python.version=3
+            '''
+        }
     }
 }
-
+        
         stage('Builder Docker') {
             steps {
                 echo 'Construction de l image Docker...'
