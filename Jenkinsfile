@@ -24,7 +24,7 @@ pipeline {
                 -v $(pwd):/usr/src \
                 sonarsource/sonar-scanner-cli \
                 -Dsonar.projectKey=mon-api-vuln \
-                -Dsonar.sources=/usr/src/sqli \
+                -Dsonar.sources=/usr/src \
                 -Dsonar.inclusions=**/*.py \
                 -Dsonar.language=py \
                 -Dsonar.python.version=3
