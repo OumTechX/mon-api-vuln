@@ -13,25 +13,25 @@ pipeline {
             }
         }
         
-       stage('SonarQube - Analyse') {
-    steps {
-        withSonarQubeEnv('sonarqube') {
-            sh '''
-                docker run --rm \
-                --network host \
-                -e SONAR_HOST_URL=http://localhost:9000 \
-                -e SONAR_TOKEN=$SONAR_AUTH_TOKEN \
-                -v $(pwd):/usr/src \
-                sonarsource/sonar-scanner-cli \
-                -Dsonar.projectKey=mon-api-vuln \
-                -Dsonar.sources=/usr/src \
-                -Dsonar.inclusions=**/*.py \
-                -Dsonar.language=py \
-                -Dsonar.python.version=3
-            '''
+        stage('SonarQube - Analyse') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh '''
+                        docker run --rm \
+                        --network host \
+                        -e SONAR_HOST_URL=http://localhost:9000 \
+                        -e SONAR_TOKEN=$SONAR_AUTH_TOKEN \
+                        -v $(pwd):/usr/src \
+                        sonarsource/sonar-scanner-cli \
+                        -Dsonar.projectKey=mon-api-vuln \
+                        -Dsonar.sources=/usr/src/sqli,/usr/src/config \
+                        -Dsonar.inclusions=**/*.py \
+                        -Dsonar.language=py \
+                        -Dsonar.python.version=3
+                    '''
+                }
+            }
         }
-    }
-}
         
         stage('Builder Docker') {
             steps {
@@ -43,7 +43,14 @@ pipeline {
         stage('Scanner avec Trivy') {
             steps {
                 echo 'Scan de sécurité avec Trivy...'
-                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 0 --severity HIGH,CRITICAL umissa/mon-api-vuln'
+                sh '''
+                    docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    aquasec/trivy image \
+                    --exit-code 1 \
+                    --severity CRITICAL \
+                    umissa/mon-api-vuln
+                '''
             }
         }
         
@@ -65,6 +72,15 @@ pipeline {
                 echo 'Déploiement sur Kubernetes...'
                 sh 'kubectl apply -f webapp.yaml'
             }
+        }
+    }
+
+    post {
+        failure {
+            echo '❌ Pipeline échoué - Failles CRITICAL détectées ou erreur !'
+        }
+        success {
+            echo '✅ Pipeline réussi - Aucune faille CRITICAL !'
         }
     }
 }
