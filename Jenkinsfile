@@ -79,9 +79,10 @@ pipeline {
             steps {
                 echo "Lancement du scan dynamique sur ${APP_URL}..."
                 script {
-                    sh 'mkdir -p zap-reports && chmod 777 zap-reports'
+                    sh 'rm -rf zap-reports && mkdir -p zap-reports && chmod 777 zap-reports'
                     sh """
                         docker run --rm \
+                        -u root \
                         --add-host=host.docker.internal:host-gateway \
                         -v \$(pwd)/zap-reports:/zap/wrk/:rw \
                         zaproxy/zap-stable zap-baseline.py \
