@@ -89,14 +89,15 @@ pipeline {
                     
                     // Exécution du scan ZAP en version Bare (légère)
                     sh """
-                        docker run --rm \
-                        -u root \
-                        --add-host=host.docker.internal:host-gateway \
-                        -v \$(pwd)/zap-reports:/zap/wrk/:rw \
-                        zaproxy/zap-bare zap-baseline.py \
-                        -t ${APP_URL} \
-                        -r zap_report.html || true
-                    """
+    docker run --rm \
+    -u root \
+    --memory=1g \
+    --add-host=host.docker.internal:host-gateway \
+    -v \$(pwd)/zap-reports:/zap/wrk/:rw \
+    zaproxy/zap-stable zap-baseline.py \
+    -t ${APP_URL} \
+    -r zap_report.html || true
+"""
                 }
             }
         }
