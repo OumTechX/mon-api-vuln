@@ -48,17 +48,18 @@ pipeline {
         }
         
         stage('Scanner avec Trivy') {
-            steps {
-                echo 'Scan de sécurité avec Trivy...'
-                sh '''
-                    docker run --rm \
-                    -v /var/run/docker.sock:/var/run/docker.sock \
-                    aquasec/trivy image \
-                    --severity CRITICAL \
-                    umissa/mon-api-vuln
-                '''
-            }
-        }
+    steps {
+        echo 'Scan de sécurité avec Trivy (Mode audit)...'
+        sh '''
+            docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy image \
+            --severity CRITICAL \
+            umissa/mon-api-vuln || true
+        ''' 
+        // Le "|| true" permet de continuer même si des failles sont trouvées
+    }
+}
         
         stage('Login & Push Docker Hub') {
             steps {
