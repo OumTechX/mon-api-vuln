@@ -3,7 +3,6 @@ pipeline {
     
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
-        // On utilise host.docker.internal pour que le container ZAP puisse atteindre ton localhost:8888
         APP_URL = "http://host.docker.internal:8888" 
     }
     
@@ -48,18 +47,17 @@ pipeline {
         }
         
         stage('Scanner avec Trivy') {
-    steps {
-        echo 'Scan de sécurité avec Trivy (Mode audit)...'
-        sh '''
-            docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy image \
-            --severity CRITICAL \
-            umissa/mon-api-vuln || true
-        ''' 
-        // Le "|| true" permet de continuer même si des failles sont trouvées
-    }
-}
+            steps {
+                echo 'Scan de sécurité avec Trivy (Mode audit)...'
+                sh '''
+                    docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    aquasec/trivy image \
+                    --severity CRITICAL \
+                    umissa/mon-api-vuln || true
+                '''
+            }
+        }
         
         stage('Login & Push Docker Hub') {
             steps {
@@ -81,18 +79,15 @@ pipeline {
             steps {
                 echo "Lancement du scan dynamique sur ${APP_URL}..."
                 script {
-                    // Création du dossier pour le rapport
                     sh 'mkdir -p zap-reports && chmod 777 zap-reports'
-                    
-                    // --add-host permet au container de trouver ton localhost via l'URL configurée
                     sh """
-    docker run --rm \
-    --add-host=host.docker.internal:host-gateway \
-    -v \$(pwd)/zap-reports:/zap/wrk/:rw \
-    owasp/zap2docker-stable zap-baseline.py \
-    -t ${APP_URL} \
-    -r zap_report.html || true
-                     """
+                        docker run --rm \
+                        --add-host=host.docker.internal:host-gateway \
+                        -v \$(pwd)/zap-reports:/zap/wrk/:rw \
+                        zaproxy/zap-stable zap-baseline.py \
+                        -t ${APP_URL} \
+                        -r zap_report.html || true
+                    """
                 }
             }
         }
@@ -100,9 +95,8 @@ pipeline {
 
     post {
         always {
-            // Publie le rapport ZAP dans l'interface Jenkins
             publishHTML([
-                allowMissing: false,
+                allowMissing: true,
                 alwaysLinkToLastBuild: true,
                 keepAll: true,
                 reportDir: 'zap-reports',
