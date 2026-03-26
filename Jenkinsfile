@@ -86,13 +86,13 @@ pipeline {
                     
                     // --add-host permet au container de trouver ton localhost via l'URL configurée
                     sh """
-                        docker run --rm \
-                        --add-host=host.docker.internal:host-gateway \
-                        -v \$(pwd)/zap-reports:/zap/wrk/:rw \
-                        owasp/zap2docker-stable zap-baseline.py \
-                        -t ${APP_URL} \
-                        -r zap_report.html || true
-                    """
+    docker run --rm \
+    --add-host=host.docker.internal:host-gateway \
+    -v \$(pwd)/zap-reports:/zap/wrk/:rw \
+    owasp/zap2docker-stable zap-baseline.py \
+    -t ${APP_URL} \
+    -r zap_report.html || true
+                     """
                 }
             }
         }
