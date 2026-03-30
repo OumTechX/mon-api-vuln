@@ -5,7 +5,6 @@ pipeline {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
         APP_URL = "http://host.docker.internal:8888"
         WSO2_CLIENT_ID = "lw1nlrWWSBHthS0P1WuXwkjfssUa"
-        WSO2_CLIENT_SECRET = credentials('wso2-client-secret')
         WSO2_TOKEN_URL = "https://host.docker.internal:9443/oauth2/token"
     }
     
@@ -72,22 +71,22 @@ pipeline {
         stage('WSO2 - Validation OAuth2/OIDC') {
             steps {
                 echo 'Validation OAuth2 via WSO2 Identity Server...'
-                script {
-                    def response = sh(
-                        script: '''
-                            curl -k -s -X POST ${WSO2_TOKEN_URL} \
-                            -H "Content-Type: application/x-www-form-urlencoded" \
-                            -d "grant_type=client_credentials&client_id=${WSO2_CLIENT_ID}&client_secret=${WSO2_CLIENT_SECRET}"
-                        ''',
-                        returnStdout: true
-                    ).trim()
-                    
-                    echo "Réponse WSO2 : ${response}"
-                    
-                    if (!response.contains("access_token")) {
-                        error "❌ Échec authentification WSO2 - Déploiement bloqué !"
+                withCredentials([string(credentialsId: 'wso2-client-secret', variable: 'WSO2_SECRET')]) {
+                    script {
+                        def response = sh(
+                            script: '''
+                                curl -k -s -X POST https://host.docker.internal:9443/oauth2/token \
+                                -H "Content-Type: application/x-www-form-urlencoded" \
+                                -d "grant_type=client_credentials&client_id=${WSO2_CLIENT_ID}&client_secret=${WSO2_SECRET}"
+                            ''',
+                            returnStdout: true
+                        ).trim()
+                        echo "Réponse WSO2 : ${response}"
+                        if (!response.contains("access_token")) {
+                            error "❌ Échec authentification WSO2 - Déploiement bloqué !"
+                        }
+                        echo "✅ Token OAuth2 obtenu - Déploiement autorisé !"
                     }
-                    echo "✅ Token OAuth2 obtenu avec succès - Déploiement autorisé !"
                 }
             }
         }
