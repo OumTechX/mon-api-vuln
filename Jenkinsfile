@@ -2,10 +2,11 @@ pipeline {
     agent any
     
     environment {
-        // Utilisation des identifiants configurés dans Jenkins
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
-        // URL cible pour le scan (ton application locale)
-        APP_URL = "http://host.docker.internal:8888" 
+        APP_URL = "http://host.docker.internal:8888"
+        WSO2_CLIENT_ID = "lw1nlrWWSBHthS0P1WuXwkjfssUa"
+        WSO2_CLIENT_SECRET = credentials('wso2-client-secret')
+        WSO2_TOKEN_URL = "https://host.docker.internal:9443/oauth2/token"
     }
     
     stages {
@@ -67,12 +68,34 @@ pipeline {
                 sh 'docker push umissa/mon-api-vuln'
             }
         }
+
+        stage('WSO2 - Validation OAuth2/OIDC') {
+            steps {
+                echo 'Validation OAuth2 via WSO2 Identity Server...'
+                script {
+                    def response = sh(
+                        script: '''
+                            curl -k -s -X POST ${WSO2_TOKEN_URL} \
+                            -H "Content-Type: application/x-www-form-urlencoded" \
+                            -d "grant_type=client_credentials&client_id=${WSO2_CLIENT_ID}&client_secret=${WSO2_CLIENT_SECRET}"
+                        ''',
+                        returnStdout: true
+                    ).trim()
+                    
+                    echo "Réponse WSO2 : ${response}"
+                    
+                    if (!response.contains("access_token")) {
+                        error "❌ Échec authentification WSO2 - Déploiement bloqué !"
+                    }
+                    echo "✅ Token OAuth2 obtenu avec succès - Déploiement autorisé !"
+                }
+            }
+        }
         
         stage('Déployer sur Kubernetes') {
             steps {
                 echo 'Tentative de déploiement sur Kubernetes...'
                 script {
-                    // Bypass SSL et continuation forcée avec || true
                     sh 'kubectl --insecure-skip-tls-verify apply -f webapp.yaml || true'
                 }
                 echo 'Attente de démarrage des ressources...'
@@ -84,10 +107,7 @@ pipeline {
             steps {
                 echo "Lancement du scan dynamique (DAST) léger sur ${APP_URL}..."
                 script {
-                    // Préparation du dossier de rapport (nettoyage et droits)
                     sh 'rm -rf zap-reports && mkdir -p zap-reports && chmod 777 zap-reports'
-                    
-                    // Exécution du scan ZAP en version Bare (légère)
                     sh """
     docker run --rm \
     -u root \
