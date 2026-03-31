@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
         APP_URL = "http://host.docker.internal:8888"
-        WSO2_CLIENT_ID = "lw1nlrWWSBHthS0P1WuXwkjfssUa"
+        WSO2_CLIENT_ID = "Iw1nIrWWSBHthS0P1WuXwkjfssUa" 
         WSO2_TOKEN_URL = "https://host.docker.internal:9443/oauth2/token"
     }
     
