@@ -121,21 +121,22 @@ pipeline {
             }
         }
 
-       stage('RGPD - Rapport de conformité') {
-    steps {
-        echo 'Génération du rapport de conformité RGPD...'
-        script {
-            sh '''
-                cp rgpd_report.py zap-reports/rgpd_report.py
-                docker run --rm \
-                -v $(pwd)/zap-reports:/zap/wrk/ \
-                python:3.9-alpine \
-                python /zap/wrk/rgpd_report.py
-            '''
+        stage('RGPD - Rapport de conformité') {
+            steps {
+                echo 'Génération du rapport de conformité RGPD...'
+                script {
+                    sh '''
+                        cp rgpd_report.py zap-reports/rgpd_report.py
+                        docker run --rm \
+                        -v $(pwd)/zap-reports:/zap/wrk/ \
+                        python:3.9-alpine \
+                        python /zap/wrk/rgpd_report.py
+                    '''
+                }
+                echo '✅ Rapport RGPD généré !'
+            }
         }
-        echo '✅ Rapport RGPD généré !'
     }
-}
 
     post {
         always {
