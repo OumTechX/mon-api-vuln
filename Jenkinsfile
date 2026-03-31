@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
         APP_URL = "http://host.docker.internal:8888"
-        WSO2_CLIENT_ID = "Iw1nIrWWSBHthS0P1WuXwkjfssUa" 
+        WSO2_CLIENT_ID = "Iw1nIrWWSBHthS0P1WuXwkjfssUa"
         WSO2_TOKEN_URL = "https://host.docker.internal:9443/oauth2/token"
     }
     
@@ -120,11 +120,27 @@ pipeline {
                 }
             }
         }
+
+        stage('RGPD - Rapport de conformité') {
+            steps {
+                echo 'Génération du rapport de conformité RGPD...'
+                script {
+                    sh '''
+                        docker run --rm \
+                        -v $(pwd)/zap-reports:/zap/wrk/ \
+                        -v $(pwd)/rgpd_report.py:/tmp/rgpd_report.py \
+                        python:3.9-alpine \
+                        python /tmp/rgpd_report.py
+                    '''
+                }
+                echo '✅ Rapport RGPD généré !'
+            }
+        }
     }
 
     post {
         always {
-            echo 'Archivage du rapport OWASP ZAP...'
+            echo 'Archivage des rapports...'
             publishHTML([
                 allowMissing: true,
                 alwaysLinkToLastBuild: true,
@@ -132,6 +148,14 @@ pipeline {
                 reportDir: 'zap-reports',
                 reportFiles: 'zap_report.html',
                 reportName: 'OWASP ZAP Report'
+            ])
+            publishHTML([
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'zap-reports',
+                reportFiles: 'rgpd_report.html',
+                reportName: 'Rapport RGPD'
             ])
         }
         failure {
