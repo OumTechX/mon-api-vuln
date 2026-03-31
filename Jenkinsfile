@@ -122,20 +122,20 @@ pipeline {
         }
 
         stage('RGPD - Rapport de conformité') {
-            steps {
-                echo 'Génération du rapport de conformité RGPD...'
-                script {
-                    sh '''
-                        cp rgpd_report.py zap-reports/rgpd_report.py
-                        docker run --rm \
-                        -v $(pwd)/zap-reports:/zap/wrk/ \
-                        python:3.9-alpine \
-                        python /zap/wrk/rgpd_report.py
-                    '''
-                }
-                echo '✅ Rapport RGPD généré !'
-            }
+    steps {
+        echo 'Génération du rapport de conformité RGPD...'
+        script {
+            sh '''
+                docker run --rm \
+                -v $(pwd)/zap-reports:/zap/wrk/ \
+                -v $(pwd)/rgpd_report.py:/rgpd_report.py \
+                python:3.9-alpine \
+                python /rgpd_report.py
+            '''
         }
+        echo '✅ Rapport RGPD généré !'
+    }
+}
     }
 
     post {
