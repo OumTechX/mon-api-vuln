@@ -125,45 +125,30 @@ pipeline {
             steps {
                 echo 'Génération du rapport de conformité RGPD...'
                 script {
-                    sh '''docker run --rm \
--v $(pwd)/zap-reports:/zap/wrk/ \
-python:3.9-alpine \
-python -c "
-import datetime
-report_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-checks = [
-    {'article': 'Article 5', 'check': 'Cookie HttpOnly Flag', 'status': 'NON_CONFORME', 'detail': 'Cookies sans flag HttpOnly detectes'},
-    {'article': 'Article 5', 'check': 'Cookie SameSite Attribute', 'status': 'NON_CONFORME', 'detail': 'Cookies sans attribut SameSite'},
-    {'article': 'Article 25', 'check': 'Content Security Policy', 'status': 'NON_CONFORME', 'detail': 'Header CSP manquant'},
-    {'article': 'Article 25', 'check': 'X-Content-Type-Options', 'status': 'NON_CONFORME', 'detail': 'Header manquant'},
-    {'article': 'Article 32', 'check': 'Anti-clickjacking Header', 'status': 'NON_CONFORME', 'detail': 'X-Frame-Options manquant'},
-    {'article': 'Article 32', 'check': 'Information Disclosure', 'status': 'NON_CONFORME', 'detail': 'Messages erreur exposent des infos'},
-    {'article': 'Article 32', 'check': 'Server Version Information', 'status': 'NON_CONFORME', 'detail': 'Header Server expose la version'},
-    {'article': 'Article 32', 'check': 'Vulnerable JS Library', 'status': 'NON_CONFORME', 'detail': 'jQuery 3.2.1 vulnerable'},
-    {'article': 'Article 5', 'check': 'HTTPS uniquement', 'status': 'CONFORME', 'detail': 'Pas de transition non securisee'},
-    {'article': 'Article 32', 'check': 'Cross-Domain', 'status': 'CONFORME', 'detail': 'Pas de misconfiguration cross-domain'},
-]
-conforme = len([c for c in checks if c['status'] == 'CONFORME'])
-non_conforme = len([c for c in checks if c['status'] == 'NON_CONFORME'])
-total = len(checks)
-score = int((conforme / total) * 100)
-rows = ''
-for c in checks:
-    badge = '<span style=background:#27ae60;color:white;padding:4px 10px;border-radius:20px>CONFORME</span>' if c['status'] == 'CONFORME' else '<span style=background:#e74c3c;color:white;padding:4px 10px;border-radius:20px>NON CONFORME</span>'
-    rows += '<tr><td>' + c['article'] + '</td><td>' + c['check'] + '</td><td>' + badge + '</td><td>' + c['detail'] + '</td></tr>'
-score_color = '#e74c3c' if score < 50 else '#f39c12' if score < 80 else '#27ae60'
-html = '<!DOCTYPE html><html lang=fr><head><meta charset=UTF-8><title>Rapport RGPD</title><style>body{font-family:Arial;margin:40px;background:#f5f5f5}.header{background:#2c3e50;color:white;padding:30px;border-radius:10px;margin-bottom:20px}table{width:100%;border-collapse:collapse;background:white;border-radius:10px;overflow:hidden;box-shadow:0 2px 5px rgba(0,0,0,.1)}th{background:#2c3e50;color:white;padding:12px}td{padding:12px;border-bottom:1px solid #eee}</style></head><body>'
-html += '<div class=header><h1>Rapport de Conformite RGPD</h1><p>Pipeline DevSecOps - Genere le : ' + report_date + '</p></div>'
-html += '<div style=background:white;border-radius:10px;padding:20px;margin-bottom:20px;box-shadow:0 2px 5px rgba(0,0,0,.1)><h2>Score de conformite RGPD</h2>'
-html += '<p style=font-size:60px;font-weight:bold;color:' + score_color + '>' + str(score) + '%</p>'
-html += '<p>Conformes: ' + str(conforme) + ' / Non conformes: ' + str(non_conforme) + ' / Total: ' + str(total) + '</p></div>'
-html += '<table><thead><tr><th>Article RGPD</th><th>Verification</th><th>Statut</th><th>Detail</th></tr></thead><tbody>' + rows + '</tbody></table>'
-html += '<div style=text-align:center;margin-top:20px;color:#7f8c8d><p>PFE SUPNUM Mauritanie 2025/2026</p></div></body></html>'
-with open('/zap/wrk/rgpd_report.html', 'w') as f:
-    f.write(html)
-print('Rapport RGPD genere : score ' + str(score) + '% (' + str(conforme) + '/' + str(total) + ' conformes)')
-"
-'''
+                    sh '''cat > zap-reports/rgpd_report.html << 'HTMLEOF'
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Rapport RGPD</title>
+<style>body{font-family:Arial;margin:40px;background:#f5f5f5}.header{background:#2c3e50;color:white;padding:30px;border-radius:10px;margin-bottom:20px}table{width:100%;border-collapse:collapse;background:white;border-radius:10px;overflow:hidden;box-shadow:0 2px 5px rgba(0,0,0,.1)}th{background:#2c3e50;color:white;padding:12px}td{padding:12px;border-bottom:1px solid #eee}</style>
+</head><body>
+<div class="header"><h1>Rapport de Conformite RGPD</h1><p>Pipeline DevSecOps - SUPNUM Mauritanie 2025/2026</p></div>
+<div style="background:white;border-radius:10px;padding:20px;margin-bottom:20px;box-shadow:0 2px 5px rgba(0,0,0,.1)">
+<h2>Score de conformite RGPD</h2>
+<p style="font-size:60px;font-weight:bold;color:#e74c3c">20%</p>
+<p>Conformes: 2 / Non conformes: 8 / Total: 10</p></div>
+<table><thead><tr><th>Article RGPD</th><th>Verification</th><th>Statut</th><th>Detail</th></tr></thead><tbody>
+<tr><td>Article 5</td><td>Cookie HttpOnly Flag</td><td><span style="background:#e74c3c;color:white;padding:4px 10px;border-radius:20px">NON CONFORME</span></td><td>Cookies sans flag HttpOnly detectes</td></tr>
+<tr><td>Article 5</td><td>Cookie SameSite Attribute</td><td><span style="background:#e74c3c;color:white;padding:4px 10px;border-radius:20px">NON CONFORME</span></td><td>Cookies sans attribut SameSite</td></tr>
+<tr><td>Article 25</td><td>Content Security Policy</td><td><span style="background:#e74c3c;color:white;padding:4px 10px;border-radius:20px">NON CONFORME</span></td><td>Header CSP manquant</td></tr>
+<tr><td>Article 25</td><td>X-Content-Type-Options</td><td><span style="background:#e74c3c;color:white;padding:4px 10px;border-radius:20px">NON CONFORME</span></td><td>Header manquant</td></tr>
+<tr><td>Article 32</td><td>Anti-clickjacking Header</td><td><span style="background:#e74c3c;color:white;padding:4px 10px;border-radius:20px">NON CONFORME</span></td><td>X-Frame-Options manquant</td></tr>
+<tr><td>Article 32</td><td>Information Disclosure</td><td><span style="background:#e74c3c;color:white;padding:4px 10px;border-radius:20px">NON CONFORME</span></td><td>Messages erreur exposent des infos</td></tr>
+<tr><td>Article 32</td><td>Server Version Information</td><td><span style="background:#e74c3c;color:white;padding:4px 10px;border-radius:20px">NON CONFORME</span></td><td>Header Server expose la version</td></tr>
+<tr><td>Article 32</td><td>Vulnerable JS Library</td><td><span style="background:#e74c3c;color:white;padding:4px 10px;border-radius:20px">NON CONFORME</span></td><td>jQuery 3.2.1 vulnerable</td></tr>
+<tr><td>Article 5</td><td>HTTPS uniquement</td><td><span style="background:#27ae60;color:white;padding:4px 10px;border-radius:20px">CONFORME</span></td><td>Pas de transition non securisee</td></tr>
+<tr><td>Article 32</td><td>Cross-Domain</td><td><span style="background:#27ae60;color:white;padding:4px 10px;border-radius:20px">CONFORME</span></td><td>Pas de misconfiguration cross-domain</td></tr>
+</tbody></table>
+<div style="text-align:center;margin-top:20px;color:#7f8c8d"><p>PFE SUPNUM Mauritanie 2025/2026</p></div>
+</body></html>
+HTMLEOF'''
                 }
                 echo '✅ Rapport RGPD généré !'
             }
