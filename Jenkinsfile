@@ -173,6 +173,8 @@ print('Rapport RGPD genere : score ' + str(score) + '% (' + str(conforme) + '/' 
     post {
         always {
             echo 'Archivage des rapports...'
+            sh 'cp zap-reports/zap_report.html /var/jenkins_home/zap_report_latest.html || true'
+            sh 'cp zap-reports/rgpd_report.html /var/jenkins_home/rgpd_report_latest.html || true'
             publishHTML([
                 allowMissing: true,
                 alwaysLinkToLastBuild: true,
