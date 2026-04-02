@@ -106,7 +106,7 @@ pipeline {
             steps {
                 echo "Lancement du scan dynamique (DAST) léger sur ${APP_URL}..."
                 script {
-                    sh 'rm -rf zap-reports && mkdir -p zap-reports && chmod 777 zap-reports'
+                    sh 'mkdir -p zap-reports && chmod 777 zap-reports'
                     sh """
     docker run --rm \
     -u root \
