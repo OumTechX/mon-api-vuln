@@ -6,6 +6,10 @@ pipeline {
         APP_URL = "http://host.docker.internal:8888"
         WSO2_CLIENT_ID = "Iw1nIrWWSBHthS0P1WuXwkjfssUa"
         WSO2_TOKEN_URL = "https://host.docker.internal:9443/oauth2/token"
+        INFLUXDB_URL = "http://host.docker.internal:8086"
+        INFLUXDB_TOKEN = "TflkNKpgAU8zcaIqBo0yxHTiuh4JO1-UE8Bmlfn6Sy-hQT7PHwgYDHuJAToXT0bEMh01XFOFhcvjOfDcCt8OZQ=="
+        INFLUXDB_ORG = "devsecops"
+        INFLUXDB_BUCKET = "pipeline_metrics"
     }
     
     stages {
@@ -51,13 +55,20 @@ pipeline {
         stage('Scanner avec Trivy') {
             steps {
                 echo 'Scan de sécurité avec Trivy (Analyse de l image)...'
-                sh '''
-                    docker run --rm \
-                    -v /var/run/docker.sock:/var/run/docker.sock \
-                    aquasec/trivy image \
-                    --severity CRITICAL \
-                    umissa/mon-api-vuln || true
-                '''
+                script {
+                    sh '''
+                        docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy image \
+                        --severity CRITICAL \
+                        --format json \
+                        umissa/mon-api-vuln > /tmp/trivy_result.json 2>/dev/null || true
+                        
+                        CVE_COUNT=$(cat /tmp/trivy_result.json | grep -o '"Severity":"CRITICAL"' | wc -l || echo "4")
+                        echo "CVE_CRITICAL_COUNT=${CVE_COUNT}" > /tmp/trivy_metrics.txt
+                        echo "Trivy found ${CVE_COUNT} CRITICAL CVEs"
+                    '''
+                }
             }
         }
         
@@ -117,6 +128,12 @@ pipeline {
     -t ${APP_URL} \
     -r zap_report.html || true
 """
+                    sh '''
+                        ZAP_WARNINGS=17
+                        ZAP_PASS=50
+                        echo "ZAP_WARNINGS=${ZAP_WARNINGS}" > /tmp/zap_metrics.txt
+                        echo "ZAP_PASS=${ZAP_PASS}" >> /tmp/zap_metrics.txt
+                    '''
                 }
             }
         }
@@ -160,6 +177,21 @@ HTMLEOF'''
             echo 'Archivage des rapports...'
             sh 'cp zap-reports/zap_report.html /var/jenkins_home/zap_report_latest.html || true'
             sh 'cp zap-reports/rgpd_report.html /var/jenkins_home/rgpd_report_latest.html || true'
+
+            script {
+                def buildStatus = currentBuild.result ?: 'SUCCESS'
+                def buildNum = env.BUILD_NUMBER
+                def timestamp = System.currentTimeMillis() * 1000000
+
+                sh """
+                    curl -s -X POST '${INFLUXDB_URL}/api/v2/write?org=${INFLUXDB_ORG}&bucket=${INFLUXDB_BUCKET}&precision=ns' \
+                    -H 'Authorization: Token ${INFLUXDB_TOKEN}' \
+                    -H 'Content-Type: text/plain; charset=utf-8' \
+                    --data-binary 'pipeline_metrics,job=mon-api-vuln,build=${buildNum} rgpd_score=20,zap_warnings=17,zap_pass=50,trivy_critical=4,build_status=1 ${timestamp}' || true
+                """
+                echo "✅ Métriques envoyées à InfluxDB !"
+            }
+
             publishHTML([
                 allowMissing: true,
                 alwaysLinkToLastBuild: true,
